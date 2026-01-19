@@ -10,5 +10,7 @@
 # Описание задания: 
 
 ```markdown
-Текст
+Создать документацию к проекту:
+Бизнес требований, плантестирования и т.д. Полный перечень взять из нейросети.
 ```
+https://www.perplexity.ai/search/prepodavatel-nuzhno-napisat-so-9MciIrLHRfaWDhI8WPWuyQ?sm=d
