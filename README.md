@@ -29,7 +29,7 @@
 | **Поздняков Владимир** | [Voviy-ux/all-quests](https://github.com/Voviy-ux/all-quests) |
 | **Юхин Лавр** | [PananiXX/-01](https://github.com/PananiXX/-01) |
 | **Тараканова Андрей** | *[20.01.26](https://github.com/andreitar3/20.01.26)* |
-| **Микштас Артурас** | *[001](https://github.com/Mrkirk1/001))* |
+| **Микштас Артурас** | *[001](https://github.com/Mrkirk1/001)* |
 
 Leendeseqy
 fertak08
