@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timedelta
-from database.user_model import UserModel  # Измененный импорт
+from database.user_model import UserModel
 from schemas.user import UserCreate, UserLogin, UserResponse
 from passlib.context import CryptContext
 import jwt
 from database.db import init_db
+from dependencies import get_current_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,6 +22,36 @@ def create_access_token(data: dict):
     expire = datetime.utcnow() + timedelta(hours=24)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+
+@router.post("/status")
+async def update_user_status(
+    user_status: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Обновление статуса пользователя
+    Используется при потере WebSocket соединения
+    """
+    try:
+        user_id = user_status.get("user_id")
+        is_online = user_status.get("is_online", False)
+        
+        # Проверяем, что пользователь обновляет свой статус
+        if user_id != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Cannot update other user status")
+        
+        status_text = "online" if is_online else "offline"
+        UserModel.update_user_status(user_id, is_online, status_text)
+        
+        return {
+            "status": "success",
+            "message": f"User {user_id} status updated to {status_text}",
+            "user_id": user_id,
+            "is_online": is_online
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Status update error: {str(e)}")
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate):
@@ -58,8 +89,22 @@ async def login(user: UserLogin):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/logout")
-async def logout():
-    return {"message": "Logout endpoint - implement later"}
+async def logout(current_user: dict = Depends(get_current_user)):
+    """
+    Выход пользователя из системы
+    Обновляет статус на оффлайн
+    """
+    try:
+        # Обновляем статус пользователя на оффлайн
+        UserModel.update_user_status(current_user["id"], False, "offline")
+        
+        return {
+            "status": "success", 
+            "message": "Successfully logged out",
+            "user_id": current_user["id"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Logout error: {str(e)}")
 
 # Добавим функцию для получения соединения с БД
 def get_db_connection():

@@ -18,6 +18,9 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         
+        # Обновляем время последней активности при каждом запросе
+        UserModel.update_last_seen(user["id"])
+        
         return user
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")

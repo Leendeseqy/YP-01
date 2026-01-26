@@ -47,24 +47,52 @@ class ChatWidget(QWidget):
         
     def delete_message(self, message_id):
         """Удаление сообщения с уведомлением через WebSocket"""
+        print(f"🔧 Attempting to delete message {message_id}")
+        
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
-            response = requests.delete(f"{SERVER_URL}/messages/{message_id}", headers=headers)
+            response = requests.delete(
+                f"{SERVER_URL}/messages/{message_id}", 
+                headers=headers,
+                timeout=5
+            )
+            
+            print(f"🔧 Delete response: {response.status_code}")
             
             if response.status_code == 200:
                 # Локально удаляем сообщение
                 self._remove_message(message_id)
+                print(f"✅ Message {message_id} deleted locally")
                 
-                # Отправляем уведомление через WebSocket
-                notification = {
-                    "type": "message_deleted", 
-                    "message_id": message_id,
-                    "deleted_by": self.current_user["id"]
-                }
-                self.websocket.send_message(notification)
+                # Проверяем WebSocket соединение
+                if self.websocket and self.websocket.is_connected:
+                    # Отправляем уведомление через WebSocket
+                    notification = {
+                        "type": "message_deleted", 
+                        "message_id": message_id,
+                        "deleted_by": self.current_user["id"],
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    print(f"🔧 Sending WebSocket notification: {notification}")
+                    self.websocket.send_message(notification)
+                else:
+                    print("⚠️ WebSocket not connected, cannot send notification")
+                    # Если WebSocket не работает, обновляем чат через HTTP
+                    self.load_messages()
+                    
+            else:
+                error_msg = f"Cannot delete message: {response.status_code}"
+                if response.text:
+                    error_msg += f" - {response.text}"
+                QMessageBox.warning(self, "Error", error_msg)
+                print(f"❌ Delete failed: {error_msg}")
                 
+        except requests.exceptions.ConnectionError:
+            QMessageBox.warning(self, "Error", "Cannot connect to server")
+            print("❌ Connection error during delete")
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Cannot delete message: {str(e)}")
+            print(f"❌ Unexpected error during delete: {e}")
             
     def init_ui(self):
         layout = QVBoxLayout()

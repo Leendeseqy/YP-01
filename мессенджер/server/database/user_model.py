@@ -47,6 +47,48 @@ class UserModel:
         conn.close()
 
     @staticmethod
+    def update_last_seen(user_id: int):
+        """Обновление времени последней активности"""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET last_seen = ? WHERE id = ?",
+            (datetime.now(), user_id)
+        )
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def check_inactive_users(timeout_minutes: int = 5):
+        """Пометить пользователей, которые не активны дольше timeout_minutes"""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Вычисляем пороговое время
+        timeout_ago = datetime.now() - timedelta(minutes=timeout_minutes)
+        
+        # Находим пользователей онлайн, у которых last_seen слишком старый
+        cursor.execute("""
+            SELECT id FROM users 
+            WHERE is_online = TRUE 
+            AND last_seen < ?
+        """, (timeout_ago,))
+        
+        inactive_users = [row["id"] for row in cursor.fetchall()]
+        
+        # Устанавливаем их статус в оффлайн
+        for user_id in inactive_users:
+            cursor.execute("""
+                UPDATE users 
+                SET is_online = FALSE, status = 'offline' 
+                WHERE id = ?
+            """, (user_id,))
+        
+        conn.commit()
+        conn.close()
+        return inactive_users
+
+    @staticmethod
     def get_all_users():
         conn = get_db_connection()
         cursor = conn.cursor()

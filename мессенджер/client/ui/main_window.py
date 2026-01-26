@@ -127,15 +127,31 @@ class MainWindow(QMainWindow):
         self.chat_tabs.removeTab(index)
         
     def logout(self):
+        """Выход из системы с обновлением статуса"""
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
-            requests.post(f"{SERVER_URL}/auth/logout", headers=headers)
-        except:
-            pass
-        self.close()
+            
+            # Отправляем запрос на выход
+            response = requests.post(
+                f"{SERVER_URL}/auth/logout",
+                headers=headers,
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                print(f"✅ User {self.current_user['id']} logged out successfully")
+            else:
+                print(f"⚠️ Logout API error: {response.status_code}")
+                
+        except requests.exceptions.ConnectionError:
+            print("⚠️ Cannot connect to server during logout")
+        except Exception as e:
+            print(f"⚠️ Logout error: {e}")
+        finally:
+            self.close()
         
     def show_about(self):
-        QMessageBox.about(self, "About", "Local Messenger v1.0\nA simple local messaging application")
+        QMessageBox.about(self, "About", "Local Messenger  v1.0 Fork by Malinevskiy Egor\nA simple local messaging application\n meow miaw :В ")
         
     def closeEvent(self, event):
         self.logout()
