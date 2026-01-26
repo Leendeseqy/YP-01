@@ -2,7 +2,7 @@ import os
 
 def is_text_file(file_path):
     """Проверяет, является ли файл текстовым (не бинарным)."""
-    text_extensions = {'.py', '.md', '.json', '.html', '.css', '.js', '.sh', '.c', '.cpp', '.h', '.cs'}
+    text_extensions = {'.py', 'txt','.md', '.json', '.html', '.css', '.js', '.sh', '.c', '.cpp', '.h', '.cs'}
     return any(file_path.lower().endswith(ext) for ext in text_extensions)
 
 def extract_contents(root_path, output_file):
@@ -39,3 +39,4 @@ if __name__ == "__main__":
         print(f"Готово! Результат в {output_file}")
     else:
         print("Папка не найдена!")
+
