@@ -36,4 +36,65 @@
 
 ---
 
+```
+📦 messenger/
+├── 📄 requirements.txt                    # Зависимости проекта
+│
+├── 📁 client/                            # Клиентская часть
+│   ├── 📄 main.py                        # Точка входа клиента
+│   ├── 📄 config.py                      # Конфигурация клиента
+│   ├── 📄 server_discovery.py            # Поиск серверов
+│   ├── 📄 server_manager.py              # Управление серверами
+│   ├── 📄 auth_manager.py                # Управление аутентификацией
+│   │
+│   ├── 📁 ui/                           # Пользовательский интерфейс
+│   │   ├── 📄 server_browser_dialog.py   # Выбор сервера
+│   │   ├── 📄 server_create_dialog.py    # Создание сервера
+│   │   ├── 📄 login_dialog.py           # Авторизация
+│   │   ├── 📄 main_window.py            # Главное окно
+│   │   ├── 📄 chat_widget.py            # Виджет чата
+│   │   └── 📄 settings_dialog.py        # Настройки (НОВЫЙ)
+│   │
+│   ├── 📁 models/                       # Модели данных
+│   │   ├── 📄 message.py                # Модель сообщения
+│   │   ├── 📄 user.py                   # Модель пользователя
+│   │   └── 📄 server_info.py            # Модель сервера
+│   │
+│   ├── 📁 network/                      # Сетевой слой
+│   │   ├── 📄 websocket_client.py       # WebSocket клиент
+│   │   ├── 📄 broadcast_client.py       # Broadcast клиент
+│   │   └── 📄 broadcast_server.py       # Broadcast сервер
+│   │
+│   ├── 📁 utils/                        # Утилиты (НОВАЯ ПАПКА)
+│   │   ├── 📄 notifications.py          # Система уведомлений (НОВЫЙ)
+│   │   └── 📄 theme_manager.py          # Менеджер тем (НОВЫЙ)
+│   │
+│   ├── 📁 icons/                        # Иконки приложения
+│   └── 📁 sounds/                       # Звуковые файлы
+│
+└── 📁 server/                           # Серверная часть
+    ├── 📄 main.py                       # Точка входа сервера
+    ├── 📄 server_config.py              # Конфигурация сервера
+    ├── 📄 server_auth.py                # Аутентификация сервера
+    ├── 📄 websocket_manager.py          # Менеджер WebSocket
+    ├── 📄 dependencies.py               # Зависимости
+    ├── 📄 broadcast_server.py           # Broadcast сервер
+    │
+    ├── 📁 database/                     # Работа с БД
+    │   ├── 📄 db.py                     # Инициализация БД
+    │   ├── 📄 user_model.py             # Модель пользователя
+    │   ├── 📄 message_model.py          # Модель сообщения
+    │   └── 📄 models.py                 # Основные модели
+    │
+    ├── 📁 routers/                      # Маршруты API
+    │   ├── 📄 auth.py                   # Аутентификация
+    │   ├── 📄 messages.py               # Работа с сообщениями
+    │   ├── 📄 users.py                  # Управление пользователями
+    │   └── 📄 admin.py                  # Административные функции
+    │
+    └── 📁 schemas/                      # Pydantic схемы
+        ├── 📄 user.py                   # Схемы пользователей
+        └── 📄 message.py                # Схемы сообщений
+```
+
 *Исходный код мессенджера доступен по ссылке: https://github.com/Leendeseqy/PKOvchinnikova_21IS_4semestr_Malinevskiy*
