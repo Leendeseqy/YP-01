@@ -1,3 +1,3 @@
-SERVER_HOST = "192.168.0.49"  # IP адрес сервера
+SERVER_HOST = "192.168.0.51"  # IP адрес сервера
 SERVER_PORT = 8000
 SERVER_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
