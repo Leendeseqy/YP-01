@@ -66,38 +66,41 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int):
-    print(f"🔌 WebSocket connection attempt from user {user_id}")
     await manager.connect(websocket, user_id)
-    print(f"✅ User {user_id} connected to WebSocket")
-    
     try:
         while True:
             try:
+                # Ожидаем сообщения
                 data = await websocket.receive_text()
-                print(f"📨 WebSocket message from user {user_id}: {data}")
                 
+                # Обрабатываем ping/pong
                 if data == 'ping':
                     await websocket.send_text('pong')
-                elif data.startswith('{'):
+                elif data == 'pong':
+                    continue
+                else:
+                    # Можно добавить обработку других сообщений
                     try:
-                        message_data = json.loads(data)
-                        await manager.send_personal_message(message_data, user_id)
+                        message = json.loads(data)
+                        # Здесь можно добавить логику обработки сообщений
+                        pass
                     except json.JSONDecodeError:
-                        print(f"Invalid JSON from user {user_id}")
+                        pass
+                        
             except WebSocketDisconnect:
-                print(f"❌ User {user_id} disconnected")
                 break
             except Exception as e:
-                print(f"⚠️ WebSocket error for user {user_id}: {e}")
+                print(f"WebSocket error: {e}")
                 break
                 
-    except WebSocketDisconnect:
-        print(f"❌ User {user_id} WebSocket disconnected")
     except Exception as e:
-        print(f"❌ WebSocket error: {e}")
+        print(f"WebSocket endpoint error: {e}")
     finally:
-        manager.disconnect(websocket, user_id)
-        print(f"📴 User {user_id} removed from WebSocket manager")
+        # Всегда вызываем disconnect
+        try:
+            manager.disconnect(websocket, user_id)
+        except:
+            pass
         
 if __name__ == "__main__":
     import uvicorn

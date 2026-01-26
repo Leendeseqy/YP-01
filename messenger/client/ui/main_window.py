@@ -3,9 +3,10 @@ from PyQt5.QtWidgets import (QMainWindow, QSplitter, QTabWidget, QListWidget,
                              QStatusBar, QMenuBar, QAction, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
-from ui.chat_widget import ChatWidget  # Исправленный импорт
+from ui.chat_widget import ChatWidget
 import requests
 from config import SERVER_URL
+
 class MainWindow(QMainWindow):
     connection_status_changed = pyqtSignal(bool)
     
@@ -23,13 +24,31 @@ class MainWindow(QMainWindow):
         self.update_timer.start(10000)  # Обновлять каждые 10 секунд
 
     def update_contacts(self):
-        self.load_contacts()
-        # Обновить статус во всех открытых чатах
-        for i in range(self.chat_tabs.count()):
-            chat_widget = self.chat_tabs.widget(i)
-            if hasattr(chat_widget, 'update_contact_status'):
-                chat_widget.update_contact_status()
+        """Обновление списка контактов"""
+        try:
+            headers = {"Authorization": f"Bearer {self.auth_token}"}
+            response = requests.get(f"{SERVER_URL}/users", headers=headers)
             
+            if response.status_code == 200:
+                updated_contacts = response.json()
+                
+                # Обновляем основной список контактов
+                self.contacts = updated_contacts
+                
+                # Обновляем отображение в списке
+                self.contacts_list.clear()
+                for user in self.contacts:
+                    status_icon = "🟢" if user["is_online"] else "⚫"
+                    self.contacts_list.addItem(f"{status_icon} {user['username']}")
+                
+                self.statusBar().showMessage("Contacts updated")
+            else:
+                QMessageBox.warning(self, "Error", "Failed to load contacts")
+                
+        except requests.exceptions.ConnectionError:
+            self.statusBar().showMessage("Disconnected")
+            QMessageBox.critical(self, "Error", "Cannot connect to server")
+    
     def init_ui(self):
         self.setWindowTitle("Local Messenger")
         self.setGeometry(100, 100, 1200, 800)
@@ -68,6 +87,7 @@ class MainWindow(QMainWindow):
         # File menu
         file_menu = menu_bar.addMenu("File")
         
+        # Добавляем метод logout
         logout_action = QAction("Logout", self)
         logout_action.triggered.connect(self.logout)
         file_menu.addAction(logout_action)
@@ -111,7 +131,7 @@ class MainWindow(QMainWindow):
             
     def open_chat(self, contact):
         print(f"🔧 Opening chat with: {contact['username']} (ID: {contact['id']})")
-    # ... остальной код ...
+        
         # Check if chat already open
         for i in range(self.chat_tabs.count()):
             if self.chat_tabs.widget(i).contact["id"] == contact["id"]:
@@ -148,11 +168,41 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"⚠️ Logout error: {e}")
         finally:
+            # Закрываем все WebSocket соединения в чатах
+            for i in range(self.chat_tabs.count()):
+                chat_widget = self.chat_tabs.widget(i)
+                if hasattr(chat_widget, 'websocket'):
+                    try:
+                        chat_widget.websocket.disconnect()
+                    except:
+                        pass
+            
+            # Закрываем окно
             self.close()
         
     def show_about(self):
-        QMessageBox.about(self, "About", "Local Messenger  v1.0 Fork by Malinevskiy Egor\nA simple local messaging application\n meow miaw :В ")
+        QMessageBox.about(self, "About", "Local Messenger v1.0 FORK by Malinevskiy Egor\nA simple local messaging application\n meow miaw :D")
         
     def closeEvent(self, event):
-        self.logout()
+        """Обработчик закрытия окна"""
+        try:
+            # Пытаемся отправить запрос на выход при закрытии
+            headers = {"Authorization": f"Bearer {self.auth_token}"}
+            response = requests.post(
+                f"{SERVER_URL}/auth/logout",
+                headers=headers,
+                timeout=2
+            )
+        except:
+            pass  # Игнорируем ошибки при закрытии
+        
+        # Закрываем все WebSocket соединения
+        for i in range(self.chat_tabs.count()):
+            chat_widget = self.chat_tabs.widget(i)
+            if hasattr(chat_widget, 'websocket'):
+                try:
+                    chat_widget.websocket.disconnect()
+                except:
+                    pass
+        
         event.accept()

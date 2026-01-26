@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
                              QLineEdit, QPushButton, QLabel, QScrollArea, 
                              QMessageBox, QInputDialog, QFileDialog, QMenu)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal 
 from PyQt5.QtGui import QTextCursor, QPixmap, QTextImageFormat
 import requests
 import os
@@ -11,15 +11,18 @@ from datetime import datetime
 from models.message import Message
 from config import SERVER_URL
 from websocket_client import MessengerWebSocket
-
 class ChatWidget(QWidget):
+    # Добавляем сигнал для обновления статуса
+    status_updated = pyqtSignal(dict)
+    
     def __init__(self, auth_token, current_user, contact):
         super().__init__()
         self.auth_token = auth_token
         self.current_user = current_user
         self.contact = contact
+        self.contact_label = None  # Сохраняем ссылку на label
         self.messages = []
-        self.temp_files = []  # Для хранения временных файлов изображений
+        self.temp_files = []
         self.init_ui()
         self.load_messages()
         
@@ -27,9 +30,41 @@ class ChatWidget(QWidget):
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.check_new_messages)
         self.update_timer.start(5000)  # Check every 5 seconds
+        
+        # Timer для обновления статуса
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_contact_status)
+        self.status_timer.start(10000)  # Обновлять статус каждые 10 секунд
+        
         self.websocket = MessengerWebSocket(current_user["id"])
         self.websocket.message_received.connect(self.handle_websocket_message)
         self.websocket.connect()
+        
+        # Подключаем сигнал
+        self.status_updated.connect(self.on_status_updated)
+
+        # Подключаем сигнал обновления статуса из WebSocket
+        self.websocket.status_updated.connect(self.handle_status_update)
+
+    def handle_status_update(self, status_data):
+        """Обработка уведомления об изменении статуса"""
+        try:
+            user_id = status_data.get("user_id")
+            is_online = status_data.get("is_online", False)
+            
+            # Проверяем, относится ли уведомление к нашему контакту
+            if user_id == self.contact["id"]:
+                print(f"📡 WebSocket status update: {self.contact['username']} is now {'🟢 online' if is_online else '⚫ offline'}")
+                
+                # Обновляем статус контакта
+                self.contact["is_online"] = is_online
+                self.contact["last_seen"] = status_data.get("timestamp")
+                
+                # Обновляем отображение
+                self.status_updated.emit(self.contact)
+                
+        except Exception as e:
+            print(f"⚠️ Error handling status update: {e}")
         
     def handle_websocket_message(self, data):
         """Обработка сообщений от WebSocket"""
@@ -98,12 +133,10 @@ class ChatWidget(QWidget):
         layout = QVBoxLayout()
         
         # Contact info
-        contact_layout = QHBoxLayout()
-        status_icon = "🟢" if self.contact["is_online"] else "⚫"
-        contact_label = QLabel(f"{status_icon} {self.contact['username']}")
-        contact_layout.addWidget(contact_label)
-        contact_layout.addStretch()
-        layout.addLayout(contact_layout)
+        self.contact_layout = QHBoxLayout()
+        self.update_status_display()  # Выносим в отдельный метод
+        self.contact_layout.addStretch()
+        layout.addLayout(self.contact_layout)
         
         # Messages area
         self.messages_area = QTextEdit()
@@ -329,7 +362,64 @@ class ChatWidget(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Unexpected error: {str(e)}")
             print(f"❌ Unexpected error: {e}")
+
+    def update_status_display(self):
+        """Обновление отображения статуса контакта"""
+        # Очищаем layout
+        while self.contact_layout.count():
+            item = self.contact_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        # Создаем новый label с актуальным статусом
+        status_icon = "🟢" if self.contact.get("is_online", False) else "⚫"
+        last_seen_text = ""
+        
+        # Добавляем время последней активности, если есть
+        if self.contact.get("last_seen"):
+            try:
+                from datetime import datetime
+                last_seen = datetime.fromisoformat(self.contact["last_seen"])
+                now = datetime.now()
+                diff = now - last_seen
+                
+                if diff.days > 0:
+                    last_seen_text = f" (был {diff.days} д. назад)"
+                elif diff.seconds > 3600:
+                    hours = diff.seconds // 3600
+                    last_seen_text = f" (был {hours} ч. назад)"
+                elif diff.seconds > 60:
+                    minutes = diff.seconds // 60
+                    last_seen_text = f" (был {minutes} мин. назад)"
+                else:
+                    last_seen_text = " (только что)"
+            except:
+                pass
+        
+        username = self.contact.get("username", "Unknown")
+        status_text = f"{status_icon} {username}{last_seen_text}"
+        
+        self.contact_label = QLabel(status_text)
+        self.contact_layout.addWidget(self.contact_label)
+    
+    def on_status_updated(self, updated_contact):
+        """Обработчик сигнала обновления статуса"""
+        try:
+            # Обновляем отображение
+            self.update_status_display()
             
+            # Обновляем заголовок вкладки (если есть доступ)
+            parent = self.parent()
+            if parent and hasattr(parent, 'setTabText'):
+                tab_index = parent.indexOf(self)
+                if tab_index >= 0:
+                    status_icon = "🟢" if updated_contact.get("is_online", False) else "⚫"
+                    parent.setTabText(tab_index, f"{status_icon} {updated_contact['username']}")
+                    
+        except Exception as e:
+            print(f"⚠️ Error updating status display: {e}")
+    
+
     def check_new_messages(self):
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
@@ -355,14 +445,39 @@ class ChatWidget(QWidget):
             pass
             
     def update_contact_status(self):
+        """Обновление информации о контакте с сервера"""
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
-            response = requests.get(f"{SERVER_URL}/users/{self.contact['id']}", headers=headers)
-            if response.status_code == 200:
-                self.contact = response.json()
-        except:
-            pass
+            response = requests.get(
+                f"{SERVER_URL}/users/{self.contact['id']}",
+                headers=headers,
+                timeout=5
+            )
             
+            if response.status_code == 200:
+                updated_contact = response.json()
+                
+                # Проверяем, изменился ли статус
+                old_status = self.contact.get("is_online", False)
+                new_status = updated_contact.get("is_online", False)
+                
+                if old_status != new_status:
+                    print(f"🔄 Status changed for {updated_contact['username']}: "
+                          f"{'🟢 online' if new_status else '⚫ offline'}")
+                
+                # Обновляем контакт
+                self.contact.update(updated_contact)
+                
+                # Используем сигнал для безопасного обновления UI
+                self.status_updated.emit(self.contact)
+                
+        except requests.exceptions.ConnectionError:
+            print("⚠️ Cannot connect to server for status update")
+        except requests.exceptions.Timeout:
+            print("⚠️ Status update request timeout")
+        except Exception as e:
+            print(f"⚠️ Error updating contact status: {e}")
+    
     def closeEvent(self, event):
         # Очищаем временные файлы при закрытии
         for temp_file in self.temp_files:

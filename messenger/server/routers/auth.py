@@ -4,7 +4,6 @@ from database.user_model import UserModel
 from schemas.user import UserCreate, UserLogin, UserResponse
 from passlib.context import CryptContext
 import jwt
-from database.db import init_db
 from dependencies import get_current_user
 
 router = APIRouter()
@@ -25,16 +24,15 @@ def create_access_token(data: dict):
 
 @router.post("/status")
 async def update_user_status(
-    user_status: dict,
+    status_data: dict,
     current_user: dict = Depends(get_current_user)
 ):
     """
     Обновление статуса пользователя
-    Используется при потере WebSocket соединения
     """
     try:
-        user_id = user_status.get("user_id")
-        is_online = user_status.get("is_online", False)
+        user_id = status_data.get("user_id")
+        is_online = status_data.get("is_online", False)
         
         # Проверяем, что пользователь обновляет свой статус
         if user_id != current_user["id"]:

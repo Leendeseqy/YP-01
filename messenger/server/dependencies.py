@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
-from database.user_model import UserModel  # Измененный импорт
+from database.user_model import UserModel
 
 security = HTTPBearer()
 SECRET_KEY = "your-secret-key-here"
@@ -19,8 +19,13 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             raise HTTPException(status_code=401, detail="User not found")
         
         # Обновляем время последней активности при каждом запросе
-        UserModel.update_last_seen(user["id"])
+        try:
+            UserModel.update_last_seen(user["id"])
+        except:
+            pass  # Игнорируем ошибки обновления last_seen
         
         return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")

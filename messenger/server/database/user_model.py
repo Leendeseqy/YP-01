@@ -51,12 +51,14 @@ class UserModel:
         """Обновление времени последней активности"""
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE users SET last_seen = ? WHERE id = ?",
-            (datetime.now(), user_id)
-        )
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute(
+                "UPDATE users SET last_seen = ? WHERE id = ?",
+                (datetime.now(), user_id)
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
     @staticmethod
     def check_inactive_users(timeout_minutes: int = 5):
