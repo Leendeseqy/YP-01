@@ -5,8 +5,14 @@ matplotlib
 tkcalendar
 schedule
 numpy
-pillow
+Pillow
 pytest
-pytest-qt
+pytest-cov
 coverage
-faker
+pytest-mock
+Faker
+black
+flake8
+isort
+pre-commit
+

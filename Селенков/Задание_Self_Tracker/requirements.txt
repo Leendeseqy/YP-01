@@ -1,17 +1,6 @@
-# Основные зависимости для системы портфолио и компетенций
-# Python 3.8 или выше
-
-# Для графического интерфейса
-tkinter>=8.6
-
-# Для работы с базой данных PostgreSQL
-psycopg2-binary>=2.9.5
-
-# Для генерации отчетов в формате Word
-python-docx>=0.8.11
-
-# Стандартные библиотеки Python (обычно уже установлены)
-# datetime
-# json
-# os
-# sql (из psycopg2)
+psycopg2-binary
+python-docx
+pytest
+pytest-mock
+pytest-cov
+Faker

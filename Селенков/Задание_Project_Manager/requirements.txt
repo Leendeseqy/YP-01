@@ -1,15 +1,9 @@
-
-# Основные зависимости
-psycopg2-binary          # Работа с PostgreSQL
-openpyxl                 # Генерация Excel файлов
-python-docx              # Генерация Word документов
-matplotlib           # Построение графиков
-pillow                 # Обработка изображений
-markdown                # Парсинг Markdown (используется в коде)
-
-# Графический интерфейс
-tkinter                         # Входит в стандартную библиотеку Python
-
-# Стандартные библиотеки Python (уже установлены)
-# os, sys, datetime, traceback
-
+psycopg2-binary
+openpyxl
+python-docx
+matplotlib
+pillow
+markdown
+pytest
+pytest-mock
+pytest-cov
